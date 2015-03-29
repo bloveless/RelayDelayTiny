@@ -20,6 +20,17 @@
 #define set_input(portdir,pin) portdir &= ~(1<<pin)
 #define set_output(portdir,pin) portdir |= (1<<pin)
 
+
+volatile uint8_t enableRelay = 0;
+void showValueOnLED(uint16_t value);
+
+/*
+uint16_t map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max)
+{
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+*/
+
 void initADC()
 {
     /* this function initialises the ADC
@@ -60,13 +71,6 @@ void initADC()
 		(1 << ADPS0);						// set prescaler to 128, bit 0
 }
 
-volatile uint8_t enableRelay = 0;
-
-uint16_t map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max)
-{
-	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
 int main(void) {
 
 	initADC();
@@ -86,26 +90,101 @@ int main(void) {
 			ADCSRA |= (1 << ADSC);			// start ADC measurement
 			while(ADCSRA & (1 << ADSC) );	// wait unil conversion completes
 
-			uint16_t delayTime = map(
-				ADCH,						// Get the ADC reading
-				0,							// Lower limit of ADC reading
-				255,						// Higher limit of ADC reading
-				600,						// Lower limit of delay (10 minutes)
-				1200						// Upper limit of delay (20 minutes)
-			);
+			uint8_t analogRead = ADCH;
 
-			output_high(PORTB, RELAY);
-
-			while(delayTime > 0)
+			if(1)
 			{
-				_delay_ms(1000);
-				delayTime--;
+				// will give us a value between 0 and 100
+				uint16_t delayTime = (((analogRead * 100) / 255));
+				delayTime = (delayTime * 3) + 300;
+
+				if(1)
+				{
+
+					output_high(PORTB, RELAY);
+
+					while(delayTime > 0)
+					{
+						_delay_ms(2000);
+						delayTime--;
+					}
+
+					output_low(PORTB, RELAY);
+				}
+				else {
+					showValueOnLED(delayTime + 300);
+				}
+
+				enableRelay = 0;
 			}
+			else {
+				showValueOnLED(analogRead);
 
-			output_low(PORTB, RELAY);
-
-			enableRelay = 0;
+				enableRelay = 0;
+			}
 		}
+	}
+}
+
+void showValueOnLED(uint16_t value)
+{
+	if(value >= 100)
+	{
+		uint8_t hundredsValue = value / 100;
+
+		for(; hundredsValue > 0; hundredsValue--)
+		{
+			output_high(PORTB, RELAY);
+			_delay_ms(250);
+			output_low(PORTB, RELAY);
+			_delay_ms(250);
+		}
+
+		_delay_ms(1000);
+
+		value = value % 100;
+	}
+
+	output_high(PORTB, RELAY);
+	_delay_ms(1000);
+	output_low(PORTB, RELAY);
+	_delay_ms(1000);
+
+	if(value >= 10)
+	{
+		uint8_t tensValue = value / 10;
+
+		for(; tensValue > 0; tensValue--)
+		{
+			output_high(PORTB, RELAY);
+			_delay_ms(250);
+			output_low(PORTB, RELAY);
+			_delay_ms(250);
+		}
+
+		_delay_ms(1000);
+
+		value = value % 10;
+	}
+
+	output_high(PORTB, RELAY);
+	_delay_ms(1000);
+	output_low(PORTB, RELAY);
+	_delay_ms(1000);
+
+	if(value >= 1)
+	{
+		uint8_t onesValue = value;
+
+		for(; onesValue > 0; onesValue--)
+		{
+			output_high(PORTB, RELAY);
+			_delay_ms(250);
+			output_low(PORTB, RELAY);
+			_delay_ms(250);
+		}
+
+		_delay_ms(1000);
 	}
 }
 
