@@ -98,30 +98,21 @@ int main(void) {
 				uint16_t delayTime = (((analogRead * 100) / 255));
 				delayTime = (delayTime * 3) + 300;
 
-				if(1)
+				output_high(PORTB, RELAY);
+
+                while(delayTime > 0)
 				{
-
-					output_high(PORTB, RELAY);
-
-					while(delayTime > 0)
-					{
-						_delay_ms(2000);
-						delayTime--;
-					}
-
-					output_low(PORTB, RELAY);
-				}
-				else {
-					showValueOnLED(delayTime + 300);
+					_delay_ms(2000);
+					delayTime--;
 				}
 
-				enableRelay = 0;
+				output_low(PORTB, RELAY);
 			}
 			else {
 				showValueOnLED(analogRead);
-
-				enableRelay = 0;
 			}
+            
+            enableRelay = 0;
 		}
 	}
 }
